@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import Client, create_client
 import os
@@ -16,6 +17,15 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 app = FastAPI(title="Rahala Albarr API")
+
+# Enable CORS so the frontend can communicate with the backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # --- Pydantic Models ---
