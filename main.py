@@ -49,9 +49,16 @@ class UserUpdate(BaseModel):
 class TripCreate(BaseModel):
     user_id: int
     location_id: int
+    trip_name: str  # <--- Added trip name here
     date: str
     duration: int
     companions: int
+
+
+class LocationCreate(BaseModel):
+    latitude: float
+    longitude: float
+    description: str
 
 
 class EmergencyCreate(BaseModel):
@@ -136,6 +143,37 @@ def update_user_profile(user_id: int, user: UserUpdate):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# --- Locations Endpoints ---
+
+@app.get("/locations")
+def get_locations():
+    """Retrieve all locations"""
+    try:
+        response = supabase.table("location").select("*").execute()
+        return {"status": "success", "data": response.data}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/locations")
+def create_location(location: LocationCreate):
+    """Add a new location to the database"""
+    try:
+        data = {
+            "latitude": location.latitude,
+            "longitude": location.longitude,
+            "description": location.description,
+        }
+        response = supabase.table("location").insert(data).execute()
+        return {
+            "status": "success",
+            "message": "Location added successfully",
+            "data": response.data,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # --- Trips Endpoints ---
 
 @app.get("/trips")
@@ -159,6 +197,7 @@ def create_trip(trip: TripCreate):
         data = {
             "user_id": trip.user_id,
             "location_id": trip.location_id,
+            "trip_name": trip.trip_name,  # <--- Included trip name here
             "date": trip.date,
             "duration": trip.duration,
             "companions": trip.companions,
@@ -213,7 +252,6 @@ def get_trip_alerts(trip_id: int):
 def create_emergency(emergency: EmergencyCreate):
     """Handle SOS emergency request and save location coordinates"""
     try:
-        # Step 1: Save the geographic location first to get location_id
         loc_data = {
             "latitude": emergency.latitude,
             "longitude": emergency.longitude,
@@ -228,7 +266,6 @@ def create_emergency(emergency: EmergencyCreate):
 
         location_id = loc_response.data[0]["location_id"]
 
-        # Step 2: Register the emergency status
         em_data = {
             "user_id": emergency.user_id,
             "location_id": location_id,
