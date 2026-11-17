@@ -41,6 +41,11 @@ class UserLogin(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    name: str
+    phone: str
+
+
 class TripCreate(BaseModel):
     user_id: int
     location_id: int
@@ -107,6 +112,30 @@ def login_user(user: UserLogin):
         raise HTTPException(status_code=400, detail=str(e))
 
 
+# --- User Profile Update Endpoint ---
+
+@app.put("/users/{user_id}")
+def update_user_profile(user_id: int, user: UserUpdate):
+    """Update user profile (name and phone)"""
+    try:
+        data = {
+            "name": user.name,
+            "phone": user.phone,
+        }
+        response = supabase.table("users").update(data).eq("user_id", user_id).execute()
+        
+        if not response.data:
+            raise HTTPException(status_code=404, detail="User not found")
+            
+        return {
+            "status": "success",
+            "message": "Profile updated successfully",
+            "data": response.data,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # --- Trips Endpoints ---
 
 @app.get("/trips")
@@ -157,6 +186,23 @@ def get_trip_by_id(trip_id: int):
         if not response.data:
             raise HTTPException(status_code=404, detail="Trip not found")
         return {"status": "success", "data": response.data[0]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- Alerts Endpoints ---
+
+@app.get("/alerts/{trip_id}")
+def get_trip_alerts(trip_id: int):
+    """Retrieve all alerts associated with a specific trip"""
+    try:
+        response = (
+            supabase.table("alert")
+            .select("*")
+            .eq("trip_id", trip_id)
+            .execute()
+        )
+        return {"status": "success", "data": response.data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
