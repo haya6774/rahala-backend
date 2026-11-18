@@ -68,6 +68,15 @@ class EmergencyCreate(BaseModel):
     description: Optional[str] = "Emergency Location"
 
 
+class ForgotPassword(BaseModel):
+    email: str
+
+
+class ResetPassword(BaseModel):
+    email: str
+    new_password: str
+
+
 # --- Endpoints ---
 
 @app.get("/")
@@ -278,6 +287,44 @@ def create_emergency(emergency: EmergencyCreate):
             "status": "success",
             "message": "Emergency alert sent successfully, tracking in progress",
             "data": em_response.data,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# --- Password Management Endpoints ---
+
+@app.post("/forgot-password")
+def forgot_password(body: ForgotPassword):
+    try:
+        response = supabase.auth.reset_password_for_email(
+            body.email,
+            options={"redirect_to": "https://your-frontend-app.com/update-password"}
+        )
+        return {
+            "status": "success",
+            "message": "Password reset instructions sent to email successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/reset-password")
+def reset_password(body: ResetPassword):
+    try:
+        response = (
+            supabase.table("users")
+            .update({"password": body.new_password})
+            .eq("email", body.email)
+            .execute()
+        )
+
+        if not response.data:
+            raise HTTPException(status_code=404, detail="Email not found")
+
+        return {
+            "status": "success",
+            "message": "Password updated successfully"
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
